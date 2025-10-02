@@ -1,0 +1,28 @@
+{
+  "name": "ayu-connect",
+  "version": "1.0.0",
+  "description": "Healthcare Records System with Aadhaar and QR code-based access",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm run client",
+    "start-full": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd frontend && npm start",
+    "install-all": "npm install && cd frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "healthcare",
+    "records",
+    "aadhaar",
+    "qr-code",
+    "blockchain"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "concurrently": "^8.2.2",
+    "date-fns": "^4.1.0"
+  }
+}

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COVID-19 Vaccination Certificate</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      line-height: 1.6;
+      color: #333;
+    }
+    .certificate {
+      max-width: 800px;
+      margin: 0 auto;
+      border: 2px solid #3b82f6;
+      border-radius: 10px;
+      padding: 30px;
+      background-color: #f0f9ff;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .logo {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .logo-text {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1e40af;
+      margin-left: 10px;
+    }
+    .title {
+      font-size: 28px;
+      font-weight: bold;
+      color: #1e40af;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      font-size: 18px;
+      color: #4b5563;
+    }
+    .beneficiary-info {
+      margin-bottom: 30px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 20px;
+      background-color: white;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .info-label {
+      font-weight: bold;
+      width: 200px;
+    }
+    .vaccination-details {
+      margin-bottom: 30px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 20px;
+      background-color: white;
+    }
+    .vaccination-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    .vaccination-table th, .vaccination-table td {
+      border: 1px solid #cbd5e1;
+      padding: 12px;
+      text-align: left;
+    }
+    .vaccination-table th {
+      background-color: #e0f2fe;
+      color: #0c4a6e;
+    }
+    .qr-section {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+    .qr-code {
+      border: 1px solid #cbd5e1;
+      padding: 10px;
+      background-color: white;
+      width: 150px;
+      height: 150px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .footer {
+      text-align: center;
+      font-size: 14px;
+      color: #4b5563;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #cbd5e1;
+    }
+    .verification-text {
+      font-style: italic;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="certificate">
+    <div class="header">
+      <div class="logo">
+        <div class="logo-text">Government of India</div>
+      </div>
+      <div class="title">COVID-19 Vaccination Certificate</div>
+      <div class="subtitle">Ministry of Health & Family Welfare</div>
+    </div>
+
+    <div class="beneficiary-info">
+      <h3>Beneficiary Details</h3>
+      <div class="info-row">
+        <div class="info-label">Beneficiary Name:</div>
+        <div>Demo Patient</div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">Age:</div>
+        <div>35</div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">Gender:</div>
+        <div>Male</div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">ID Verified:</div>
+        <div>Aadhaar # XXXX XXXX 9012</div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">Beneficiary Reference ID:</div>
+        <div>1234567890123456</div>
+      </div>
+    </div>
+
+    <div class="vaccination-details">
+      <h3>Vaccination Details</h3>
+      <table class="vaccination-table">
+        <thead>
+          <tr>
+            <th>Vaccine</th>
+            <th>Date of Dose</th>
+            <th>Batch No.</th>
+            <th>Vaccination at</th>
+            <th>Vaccinated by</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>COVISHIELD</td>
+            <td>30-May-2023</td>
+            <td>CV12345678</td>
+            <td>Government Vaccination Center, Delhi</td>
+            <td>Dr. Gupta</td>
+          </tr>
+          <tr>
+            <td>COVISHIELD</td>
+            <td>30-Jun-2023</td>
+            <td>CV87654321</td>
+            <td>Government Vaccination Center, Delhi</td>
+            <td>Dr. Gupta</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="qr-section">
+      <div class="qr-code">
+        <div style="font-size: 12px; text-align: center;">
+          [QR Code]<br>
+          Scan to verify
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p class="verification-text">This vaccination certificate can be verified using the QR code or by visiting cowin.gov.in.</p>
+      <p>Together, India will defeat COVID-19</p>
+      <p>For any assistance, please visit www.cowin.gov.in or call national helpline number 1075</p>
+    </div>
+  </div>
+</body>
+</html>
