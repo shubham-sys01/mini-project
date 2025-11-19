@@ -18,7 +18,7 @@ import PrivateRoute from './components/PrivateRoute';
 import NotificationContainer from './components/NotificationContainer';
 
 // Utils
-import { getToken, setToken, removeToken } from './utils/auth';
+import { getToken, setToken, removeToken, getSessionId, removeSessionId } from './utils/auth';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -26,10 +26,43 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
+    // Check if user is logged in (either via token or session)
     const checkAuth = async () => {
       const token = getToken();
+      const sessionId = getSessionId();
       
+      // Check for session-based authentication first (DigiLocker)
+      if (sessionId) {
+        try {
+          const response = await fetch(`http://localhost:8080/api/digilocker/verify-session?session_id=${sessionId}`, {
+            headers: {
+              'x-session-id': sessionId
+            }
+          });
+          
+          const data = await response.json();
+          
+          if (data.success && data.user) {
+            // Include Aadhaar data in user object
+            const userWithAadhaarData = {
+              ...data.user,
+              aadhaarData: data.aadhaarData || null
+            };
+            setUser(userWithAadhaarData);
+            setIsAuthenticated(true);
+            setLoading(false);
+            return;
+          } else {
+            // Session is invalid, remove it
+            removeSessionId();
+          }
+        } catch (error) {
+          console.error('Session verification error:', error);
+          removeSessionId();
+        }
+      }
+      
+      // Check for token-based authentication (default Aadhaar/OTP login)
       if (token) {
         try {
           // Fetch user data
@@ -62,16 +95,24 @@ function App() {
     checkAuth();
   }, []);
 
-  const login = (token, userData) => {
-    setToken(token);
+  const login = (tokenOrSessionId, userData, isSession = false) => {
+    if (isSession) {
+      // Session-based login (DigiLocker)
+      localStorage.setItem('sessionid', tokenOrSessionId);
+    } else {
+      // Token-based login (default Aadhaar/OTP)
+      setToken(tokenOrSessionId);
+    }
     setUser(userData);
     setIsAuthenticated(true);
     console.log('User logged in:', userData);
     console.log('Aadhaar Number:', userData.aadhaarNumber);
+    console.log('Login method:', isSession ? 'DigiLocker Session' : 'Token');
   };
 
   const logout = () => {
     removeToken();
+    removeSessionId();
     setUser(null);
     setIsAuthenticated(false);
   };

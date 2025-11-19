@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
 import { loginWithAadhaar, verifyOtp } from '../utils/api';
+import { getSessionId, setSessionId } from '../utils/auth';
 
 const AadhaarLogin = ({ login }) => {
+  const history = useHistory();
+  const location = useLocation();
   const [aadhaarNumber, setAadhaarNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -10,8 +14,120 @@ const AadhaarLogin = ({ login }) => {
   const [devOtp, setDevOtp] = useState(''); // For development only
   const [formattedAadhaar, setFormattedAadhaar] = useState('');
   const otpInputRef = useRef(null);
+  const [digilockerUrl, setDigilockerUrl] = useState('');
+  const [digilockerLoading, setDigilockerLoading] = useState(true);
+  const [digilockerError, setDigilockerError] = useState('');
+  const [sessionid, setSessionid] = useState(null);
 
-  // Format Aadhaar number with spaces (XXXX XXXX XXXX)
+  // Handle DigiLocker callback
+  useEffect(() => {
+    const handleDigilockerCallback = async () => {
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.get('session_id');
+      const code = params.get('code');
+      
+      if (sessionId) {
+        try {
+          setLoading(true);
+          const response = await fetch(`http://localhost:8080/api/digilocker/callback?session_id=${sessionId}`);
+          const data = await response.json();
+          
+          if (data.success && data.user) {
+            // Store session ID and login user with Aadhaar data
+            setSessionId(sessionId);
+            // Include Aadhaar data in user object for dashboard
+            const userWithAadhaarData = {
+              ...data.user,
+              aadhaarData: data.aadhaarData || null
+            };
+            login(sessionId, userWithAadhaarData, true);
+            // Clear URL parameters
+            history.replace('/');
+          } else {
+            setError(data.message || 'DigiLocker authentication failed');
+          }
+        } catch (err) {
+          console.error('DigiLocker callback error:', err);
+          setError('Unable to complete DigiLocker authentication');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    handleDigilockerCallback();
+  }, [location.search, history, login]);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const existingSessionId = getSessionId();
+    if (existingSessionId) {
+      // Verify the session is still valid
+      fetch(`http://localhost:8080/api/digilocker/verify-session?session_id=${existingSessionId}`, {
+        headers: {
+          'x-session-id': existingSessionId
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.user) {
+            // Include Aadhaar data in user object for dashboard
+            const userWithAadhaarData = {
+              ...data.user,
+              aadhaarData: data.aadhaarData || null
+            };
+            login(existingSessionId, userWithAadhaarData, true);
+          } else {
+            // Session invalid, remove it
+            localStorage.removeItem('sessionid');
+          }
+        })
+        .catch(err => {
+          console.error('Session verification error:', err);
+          localStorage.removeItem('sessionid');
+        });
+    }
+  }, [login]);
+
+  // Initialize DigiLocker session
+  useEffect(() => {
+    let isMounted = true;
+    
+    const initializeDigilockerSession = async () => {
+      try {
+        setDigilockerLoading(true);
+        setDigilockerError('');
+        const response = await fetch('http://localhost:8080/api/digilocker/session');
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || 'Unable to initialize DigiLocker session');
+        }
+
+        if (isMounted) {
+          setDigilockerUrl(data.data.authorizationUrl);
+          if (data.data.session_id) {
+            setSessionid(data.data.session_id);
+            // Note: session_id will be stored in localStorage after successful callback
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setDigilockerError(err.message || 'Unable to initialize DigiLocker session');
+        }
+      } finally {
+        if (isMounted) {
+          setDigilockerLoading(false);
+        }
+      }
+    };
+
+    initializeDigilockerSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   useEffect(() => {
     if (aadhaarNumber) {
       const formatted = aadhaarNumber.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim();
@@ -81,8 +197,8 @@ const AadhaarLogin = ({ login }) => {
       const response = await verifyOtp(aadhaarNumber.replace(/\s/g, ''), otp);
       
       if (response.success) {
-        // Login successful
-        login(response.token, response.user);
+        // Login successful - use token-based login (default method)
+        login(response.token, response.user, false);
       } else {
         setError(response.message || 'Invalid OTP');
       }
@@ -117,6 +233,28 @@ const AadhaarLogin = ({ login }) => {
           <h1 className="login-title gradient-text">AYUCONNECT</h1>
           <p className="login-subtitle">Secure Healthcare Records System</p>
         </div>
+
+        <div className="mb-4">
+          {digilockerUrl ? (
+            <a
+              className="btn btn-outline btn-block"
+              href={digilockerUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Login using DigiLocker
+            </a>
+          ) : (
+            <button className="btn btn-outline btn-block" type="button" disabled={digilockerLoading}>
+              {digilockerLoading ? 'Preparing DigiLocker session...' : 'DigiLocker unavailable'}
+            </button>
+          )}
+          {digilockerError && (
+            <p className="form-text" style={{ color: 'var(--danger-color)' }}>
+              {digilockerError}
+            </p>
+          )}
+        </div>
         
         {error && (
           <div className="alert alert-danger">
@@ -128,7 +266,6 @@ const AadhaarLogin = ({ login }) => {
             {error}
           </div>
         )}
-        
         <div className="login-form">
           {!otpSent ? (
             <form onSubmit={handleAadhaarSubmit}>

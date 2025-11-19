@@ -4,6 +4,11 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
 
+const DIGILOCKER_API_KEY = process.env.DIGILOCKER_API_KEY || 'key_live_fa7135b44e824b37a83a1a510128667c';
+const DIGILOCKER_API_SECRET = process.env.DIGILOCKER_API_SECRET || 'secret_live_5843da57273945b994de3c37705d1f9c';
+const DIGILOCKER_API_VERSION = process.env.DIGILOCKER_API_VERSION || '1.0';
+const DIGILOCKER_REDIRECT_URL = process.env.DIGILOCKER_REDIRECT_URL || 'http://localhost:3000/';
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const recordsRoutes = require('./routes/records');
@@ -12,7 +17,7 @@ const emergencyRoutes = require('./routes/emergency');
 
 // Initialize express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT =  8080;
 
 // Middleware
 app.use(cors());
@@ -115,6 +120,159 @@ app.post('/api/emergency/token', (req, res) => {
       recordCount: recordIds.length
     }
   });
+});
+
+app.get('/api/digilocker/session', async (req, res) => {
+  try {
+    const authHeaders = new Headers();
+    authHeaders.append('x-api-key', DIGILOCKER_API_KEY);
+    authHeaders.append('x-api-secret', DIGILOCKER_API_SECRET);
+    authHeaders.append('x-api-version', DIGILOCKER_API_VERSION);
+    console.log("hello")
+    const authResponse = await fetch('https://test-api.sandbox.co.in/authenticate', {
+      method: 'POST',
+      headers: authHeaders,
+      redirect: 'follow'
+    });
+
+    const authData = await authResponse.json();
+    const accessToken = authData?.data?.access_token || authData?.access_token;
+
+    if (!accessToken) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve DigiLocker access token'
+      });
+    }
+
+    const sessionHeaders = new Headers();
+    sessionHeaders.append('Authorization', `${accessToken}`);
+    sessionHeaders.append('x-api-key', DIGILOCKER_API_KEY);
+    sessionHeaders.append('x-api-version', DIGILOCKER_API_VERSION);
+    sessionHeaders.append('Content-Type', 'application/json');
+
+    const payload = {
+      '@entity': 'in.co.sandbox.kyc.digilocker.session.request',
+      flow: 'signin',
+      redirect_url: DIGILOCKER_REDIRECT_URL,
+      doc_types: ['aadhaar'],
+      options: {
+        verification_method: ['aadhaar'],
+        pinless: true,
+        usernameless: true,
+        verified_mobile: '9999999999'
+      }
+    };
+    const raw = JSON.stringify({
+      "@entity": "in.co.sandbox.kyc.digilocker.session.request",
+      "flow": "signin",
+      "redirect_url": DIGILOCKER_REDIRECT_URL,
+      "doc_types": ["aadhaar"],
+      "options": {
+        "verification_method": ["aadhaar"],
+        "pinless": true,
+        "usernameless": true,
+        "verified_mobile": "9999999999"
+      }
+    });
+    const sessionResponse = await fetch('https://api.sandbox.co.in/kyc/digilocker/sessions/init', {
+      method: 'POST',
+      headers: sessionHeaders,
+      body: raw,
+      redirect: 'follow'
+    });
+    console.log(sessionResponse)
+    const sessionData = await sessionResponse.json();
+    const authorizationUrl = sessionData?.data?.authorization_url || sessionData?.data?.redirect_url;
+    const sessionId = sessionData?.data?.session_id || sessionData?.session_id;
+    console.log(sessionData)
+    if (!authorizationUrl) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create DigiLocker session'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        authorizationUrl,
+        session_id: sessionId
+      }
+    });
+  } catch (error) {
+    console.error('DigiLocker session error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Unable to initiate DigiLocker session'
+    });
+  }
+});
+
+// DigiLocker callback route - handles redirect after successful login
+app.get('/api/digilocker/callback', async (req, res) => {
+  try {
+    const { session_id, code, state } = req.query;
+    
+    // If session_id is provided, authenticate the user
+    if (session_id) {
+      // Return success with session_id - user is authenticated via DigiLocker
+      res.status(200).json({
+        success: true,
+        message: 'DigiLocker authentication successful',
+        session_id: session_id,
+        user: {
+          id: `user-digilocker-${session_id}`,
+          name: 'DigiLocker User',
+          aadhaarNumber: null
+        }
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing session_id in callback'
+      });
+    }
+  } catch (error) {
+    console.error('DigiLocker callback error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Unable to process DigiLocker callback',
+      error: error.message
+    });
+  }
+});
+
+// Verify session endpoint - used to check if session is valid
+app.get('/api/digilocker/verify-session', async (req, res) => {
+  try {
+    const sessionId = req.headers['x-session-id'] || req.query.session_id;
+    
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session ID is required'
+      });
+    }
+    
+    // Simply verify that session_id exists - in production you might want to verify with DigiLocker API
+    // For now, we'll just return success if session_id is provided
+    res.status(200).json({
+      success: true,
+      user: {
+        id: `user-digilocker-${sessionId}`,
+        name: 'DigiLocker User',
+        aadhaarNumber: null
+      }
+    });
+  } catch (error) {
+    console.error('Session verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Unable to verify session',
+      error: error.message
+    });
+  }
 });
 
 // Uncomment these when MongoDB is set up

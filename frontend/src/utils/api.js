@@ -1,5 +1,5 @@
 
-import { getToken } from './auth';
+import { getToken, getSessionId } from './auth';
 import { v4 as uuidv4 } from 'uuid';
 
 const API_URL = 'http://localhost:8080/api';
@@ -106,6 +106,7 @@ export const apiRequest = async (endpoint, method = 'GET', data = null, isFormDa
   }
   
   const token = getToken();
+  const sessionId = getSessionId();
   
   const headers = {};
   
@@ -113,8 +114,11 @@ export const apiRequest = async (endpoint, method = 'GET', data = null, isFormDa
     headers['Content-Type'] = 'application/json';
   }
   
+  // Use token if available (default login), otherwise use session ID (DigiLocker)
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  } else if (sessionId) {
+    headers['x-session-id'] = sessionId;
   }
   
   const config = {

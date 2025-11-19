@@ -1,4 +1,4 @@
-// Token management functions
+// Token and session management functions
 
 /**
  * Get the JWT token from localStorage
@@ -21,6 +21,37 @@ export const setToken = (token) => {
  */
 export const removeToken = () => {
   localStorage.removeItem('ayu_connect_token');
+};
+
+/**
+ * Get the session ID from localStorage
+ * @returns {string|null} The session ID or null if not found
+ */
+export const getSessionId = () => {
+  return localStorage.getItem('sessionid');
+};
+
+/**
+ * Set the session ID in localStorage
+ * @param {string} sessionId - The session ID to store
+ */
+export const setSessionId = (sessionId) => {
+  localStorage.setItem('sessionid', sessionId);
+};
+
+/**
+ * Remove the session ID from localStorage
+ */
+export const removeSessionId = () => {
+  localStorage.removeItem('sessionid');
+};
+
+/**
+ * Check if user is authenticated (either via token or session)
+ * @returns {boolean} True if authenticated, false otherwise
+ */
+export const isAuthenticated = () => {
+  return !!(getToken() || getSessionId());
 };
 
 /**
